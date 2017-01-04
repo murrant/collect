@@ -3,12 +3,9 @@
 namespace Illuminate\Support;
 
 use ArrayAccess;
-use Illuminate\Support\Traits\Macroable;
 
 class Arr
 {
-    use Macroable;
-
     /**
      * Determine whether the given value is array accessible.
      *
@@ -45,7 +42,7 @@ class Arr
      */
     public static function collapse($array)
     {
-        $results = [];
+        $results = array();
 
         foreach ($array as $values) {
             if ($values instanceof Collection) {
@@ -68,7 +65,7 @@ class Arr
      */
     public static function divide($array)
     {
-        return [array_keys($array), array_values($array)];
+        return array(array_keys($array), array_values($array));
     }
 
     /**
@@ -80,7 +77,7 @@ class Arr
      */
     public static function dot($array, $prepend = '')
     {
-        $results = [];
+        $results = array();
 
         foreach ($array as $key => $value) {
             if (is_array($value) && ! empty($value)) {
@@ -131,7 +128,7 @@ class Arr
      * @param  mixed  $default
      * @return mixed
      */
-    public static function first($array, callable $callback = null, $default = null)
+    public static function first($array, $callback = null, $default = null)
     {
         if (is_null($callback)) {
             if (empty($array)) {
@@ -160,7 +157,7 @@ class Arr
      * @param  mixed  $default
      * @return mixed
      */
-    public static function last($array, callable $callback = null, $default = null)
+    public static function last($array, $callback = null, $default = null)
     {
         if (is_null($callback)) {
             return empty($array) ? value($default) : end($array);
@@ -178,17 +175,19 @@ class Arr
      */
     public static function flatten($array, $depth = INF)
     {
-        return array_reduce($array, function ($result, $item) use ($depth) {
+        $result = array();
+        foreach ($array as $item) {
             $item = $item instanceof Collection ? $item->all() : $item;
 
             if (! is_array($item)) {
-                return array_merge($result, [$item]);
+                $result = array_merge($result, array($item));
             } elseif ($depth === 1) {
-                return array_merge($result, array_values($item));
+                $result = array_merge($result, array_values($item));
             } else {
-                return array_merge($result, static::flatten($item, $depth - 1));
+                $result = array_merge($result, static::flatten($item, $depth - 1));
             }
-        }, []);
+        }
+        return $result;
     }
 
     /**
@@ -287,7 +286,7 @@ class Arr
             return false;
         }
 
-        if ($keys === []) {
+        if ($keys === array()) {
             return false;
         }
 
@@ -347,7 +346,7 @@ class Arr
      */
     public static function pluck($array, $value, $key = null)
     {
-        $results = [];
+        $results = array();
 
         list($value, $key) = static::explodePluckParameters($value, $key);
 
@@ -382,7 +381,7 @@ class Arr
 
         $key = is_null($key) || is_array($key) ? $key : explode('.', $key);
 
-        return [$value, $key];
+        return array($value, $key);
     }
 
     /**
@@ -398,7 +397,7 @@ class Arr
         if (is_null($key)) {
             array_unshift($array, $value);
         } else {
-            $array = [$key => $value] + $array;
+            $array = array($key => $value) + $array;
         }
 
         return $array;
@@ -446,7 +445,7 @@ class Arr
             // to hold the next value, allowing us to create the arrays to hold final
             // values at the correct depth. Then we'll keep digging into the array.
             if (! isset($array[$key]) || ! is_array($array[$key])) {
-                $array[$key] = [];
+                $array[$key] = array();
             }
 
             $array = &$array[$key];
@@ -512,8 +511,16 @@ class Arr
      * @param  callable  $callback
      * @return array
      */
-    public static function where($array, callable $callback)
+    public static function where($array, $callback)
     {
-        return array_filter($array, $callback, ARRAY_FILTER_USE_BOTH);
+        // php 5.3 array_filter does not support ARRAY_FILTER_USE_BOTH
+        $result = array();
+        foreach ($array as $key => $value) {
+            if ($callback($value, $key)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 }
